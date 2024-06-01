@@ -1,15 +1,27 @@
 syntax="proto3";
 
-option go_package="services/gameservice";
+option go_package="github.com/CiaranOtter/grpc_threes.git/services/gameservice";
 
 // the move the player wants to make
 message Move {
     int32 row =1;
     int32 col =2;
     int32 colour =3;
-    bool success = 4;
 }
 
+message Command {
+    string command = 1;
+    Move move = 2;
+}
+
+message Response {
+    bool success = 1;
+}
+
+message Player {
+    string name = 1;
+    int32 colour = 2;
+}
 
 message Empty {
 
@@ -17,5 +29,8 @@ message Empty {
 
 service GameService {
     // send my Move receive the opponents move 
-    rpc MakeMove(Move) returns(Move);
+    rpc MakeMove(Move) returns(Response);
+    rpc GetCommand(Empty) returns(Command);
+    rpc RegisterPlayer(Player) returns(Player);
+
 }

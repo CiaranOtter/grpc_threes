@@ -19,7 +19,9 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	GameService_MakeMove_FullMethodName = "/GameService/MakeMove"
+	GameService_MakeMove_FullMethodName       = "/GameService/MakeMove"
+	GameService_GetCommand_FullMethodName     = "/GameService/GetCommand"
+	GameService_RegisterPlayer_FullMethodName = "/GameService/RegisterPlayer"
 )
 
 // GameServiceClient is the client API for GameService service.
@@ -27,7 +29,9 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type GameServiceClient interface {
 	// send my Move receive the opponents move
-	MakeMove(ctx context.Context, in *Move, opts ...grpc.CallOption) (*Move, error)
+	MakeMove(ctx context.Context, in *Move, opts ...grpc.CallOption) (*Response, error)
+	GetCommand(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*Command, error)
+	RegisterPlayer(ctx context.Context, in *Player, opts ...grpc.CallOption) (*Player, error)
 }
 
 type gameServiceClient struct {
@@ -38,9 +42,27 @@ func NewGameServiceClient(cc grpc.ClientConnInterface) GameServiceClient {
 	return &gameServiceClient{cc}
 }
 
-func (c *gameServiceClient) MakeMove(ctx context.Context, in *Move, opts ...grpc.CallOption) (*Move, error) {
-	out := new(Move)
+func (c *gameServiceClient) MakeMove(ctx context.Context, in *Move, opts ...grpc.CallOption) (*Response, error) {
+	out := new(Response)
 	err := c.cc.Invoke(ctx, GameService_MakeMove_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *gameServiceClient) GetCommand(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*Command, error) {
+	out := new(Command)
+	err := c.cc.Invoke(ctx, GameService_GetCommand_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *gameServiceClient) RegisterPlayer(ctx context.Context, in *Player, opts ...grpc.CallOption) (*Player, error) {
+	out := new(Player)
+	err := c.cc.Invoke(ctx, GameService_RegisterPlayer_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -52,7 +74,9 @@ func (c *gameServiceClient) MakeMove(ctx context.Context, in *Move, opts ...grpc
 // for forward compatibility
 type GameServiceServer interface {
 	// send my Move receive the opponents move
-	MakeMove(context.Context, *Move) (*Move, error)
+	MakeMove(context.Context, *Move) (*Response, error)
+	GetCommand(context.Context, *Empty) (*Command, error)
+	RegisterPlayer(context.Context, *Player) (*Player, error)
 	mustEmbedUnimplementedGameServiceServer()
 }
 
@@ -60,8 +84,14 @@ type GameServiceServer interface {
 type UnimplementedGameServiceServer struct {
 }
 
-func (UnimplementedGameServiceServer) MakeMove(context.Context, *Move) (*Move, error) {
+func (UnimplementedGameServiceServer) MakeMove(context.Context, *Move) (*Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method MakeMove not implemented")
+}
+func (UnimplementedGameServiceServer) GetCommand(context.Context, *Empty) (*Command, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetCommand not implemented")
+}
+func (UnimplementedGameServiceServer) RegisterPlayer(context.Context, *Player) (*Player, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RegisterPlayer not implemented")
 }
 func (UnimplementedGameServiceServer) mustEmbedUnimplementedGameServiceServer() {}
 
@@ -94,6 +124,42 @@ func _GameService_MakeMove_Handler(srv interface{}, ctx context.Context, dec fun
 	return interceptor(ctx, in, info, handler)
 }
 
+func _GameService_GetCommand_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GameServiceServer).GetCommand(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GameService_GetCommand_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GameServiceServer).GetCommand(ctx, req.(*Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GameService_RegisterPlayer_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Player)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GameServiceServer).RegisterPlayer(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GameService_RegisterPlayer_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GameServiceServer).RegisterPlayer(ctx, req.(*Player))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // GameService_ServiceDesc is the grpc.ServiceDesc for GameService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -104,6 +170,14 @@ var GameService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "MakeMove",
 			Handler:    _GameService_MakeMove_Handler,
+		},
+		{
+			MethodName: "GetCommand",
+			Handler:    _GameService_GetCommand_Handler,
+		},
+		{
+			MethodName: "RegisterPlayer",
+			Handler:    _GameService_RegisterPlayer_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
