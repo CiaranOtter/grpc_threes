@@ -1,0 +1,21 @@
+syntax="proto3";
+
+option go_package="services/gameservice";
+
+// the move the player wants to make
+message Move {
+    int32 row =1;
+    int32 col =2;
+    int32 colour =3;
+    bool success = 4;
+}
+
+
+message Empty {
+
+}
+
+service GameService {
+    // send my Move receive the opponents move 
+    rpc MakeMove(Move) returns(Move);
+}
