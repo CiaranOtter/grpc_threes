@@ -3,15 +3,20 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"log"
 	"math/rand"
 	"os"
-	"strings"
+	"strconv"
+
+	"github.com/CiaranOtter/grpc_threes.git/client"
+	gm "github.com/CiaranOtter/grpc_threes.git/gameservice"
+	"github.com/CiaranOtter/grpc_threes.git/util"
 	// "service/gameservice"
 )
 
 var board [7][7]*node
 var moves = make([]*node, 0)
-var open_space = make([]move, 0)
+var open_space = make([]gm.Move, 0)
 
 /** reset the game state
  *
@@ -32,31 +37,6 @@ var char_reps = map[int]string{
 }
 
 /*
-  - a move for a piece to make
-    row - the row of the move
-    col - the column of the move
-*/
-
-type move struct {
-	row int
-	col int
-}
-
-/*
-  - A piece on the board
-    position - a move for the position of the piec
-    safe - the value for whether a piece is protected or not
-    colour - the colour of the piece
-    poss_move - the possible moves for the piece
-*/
-type piece struct {
-	position  move
-	safe      bool
-	colour    int
-	poss_move []int
-}
-
-/*
   - a node value for a point on the board
     space_value - the value of the space
     neighbors - the adjacent spaces to the node
@@ -65,8 +45,8 @@ type piece struct {
 
 type node struct {
 	space_value int
-	piece       *piece
-	position    move
+	piece       *util.Piece
+	position    gm.Move
 	neighbors   []*node
 }
 
@@ -119,9 +99,9 @@ func hor_line() *node {
 func space(row int, col int) *node {
 	space := &node{
 		space_value: 0,
-		position: move{
-			row: row,
-			col: col,
+		position: gm.Move{
+			Row: int32(row),
+			Col: int32(col),
 		},
 		neighbors: make([]*node, 0),
 	}
@@ -133,7 +113,7 @@ func space(row int, col int) *node {
 var num_pieces int
 var phase int
 
-var pieces []*piece
+var pieces []*util.Piece
 
 /** evalutate the board to generate score for player
  */
@@ -152,7 +132,7 @@ func print_board(b [7][7]*node) {
 	for _, row := range b {
 		for _, cell := range row {
 			if cell.piece != nil {
-				fmt.Printf("%s", char_reps[cell.piece.colour])
+				fmt.Printf("%s", char_reps[cell.piece.Colour])
 			} else {
 				fmt.Printf("%s", char_reps[cell.space_value])
 			}
@@ -190,13 +170,13 @@ func connect_board() {
 }
 
 func find_move() {
-	open_space = make([]move, 0)
+	open_space = make([]gm.Move, 0)
 	for i := range board {
 		for j := range board {
 			if board[i][j].space_value == 0 && board[i][j].piece == nil {
-				open_space = append(open_space, move{
-					row: i,
-					col: j,
+				open_space = append(open_space, gm.Move{
+					Row: int32(i),
+					Col: int32(j),
 				})
 			}
 		}
@@ -205,9 +185,9 @@ func find_move() {
 
 func print_connections() {
 	for _, node := range moves {
-		fmt.Printf("Analysing position %d, %d: ", node.position.row, node.position.col)
+		fmt.Printf("Analysing position %d, %d: ", node.position.Row, node.position.Col)
 		for _, n := range node.neighbors {
-			fmt.Printf(" (%d, %d) ->", n.position.row, n.position.col)
+			fmt.Printf(" (%d, %d) ->", n.position.Row, n.position.Col)
 		}
 		fmt.Printf("\n")
 	}
@@ -215,27 +195,27 @@ func print_connections() {
 
 func add_piece(board *[7][7]*node, position *node, colour int) {
 	num_pieces--
-	fmt.Printf("Setting row %d, ol %d \n", position.position.row, position.position.col)
+	fmt.Printf("Setting row %d, ol %d \n", position.position.Row, position.position.Col)
 
-	p := piece{
-		position: position.position,
-		safe:     false,
-		colour:   colour,
+	p := util.Piece{
+		Position: position.position,
+		Safe:     false,
+		Colour:   colour,
 	}
 
-	board[position.position.row][position.position.col].piece = &p
+	board[position.position.Row][position.position.Col].piece = &p
 
 	pieces = append(pieces, &p)
 }
 
-func move_piece(board *[7][7]*node, piece *piece) {
-	fmt.Printf("Moving piece: (%d, %d)", piece.position.row, piece.position.col)
-	for _, node := range board[piece.position.row][piece.position.col].neighbors {
+func move_piece(board *[7][7]*node, piece *util.Piece) {
+	fmt.Printf("Moving piece: (%d, %d)", piece.Position.Row, piece.Position.Col)
+	for _, node := range board[piece.Position.Row][piece.Position.Col].neighbors {
 		if node.piece == nil {
-			fmt.Printf(" -> (%d, %d)", node.position.row, node.position.col)
+			fmt.Printf(" -> (%d, %d)", node.position.Row, node.position.Col)
 			fmt.Printf("\n")
-			board[piece.position.row][piece.position.col].piece = nil
-			piece.position = node.position
+			board[piece.Position.Row][piece.Position.Col].piece = nil
+			piece.Position = node.position
 			node.piece = piece
 			break
 		}
@@ -245,18 +225,15 @@ func move_piece(board *[7][7]*node, piece *piece) {
 func main() {
 
 	reader := bufio.NewReader(os.Stdin)
-	fmt.Print("Are you host? (y/n): ")
-	text, _ := reader.ReadString('\n')
 
-	if strings.Compare(text, "Y") {
-		fmt.Print("Port for host?")
-		port, _ := reader.ReadString('\n')
-		startServer(port)
-	} else {
-		fmt.Print("Connect to port: ")
-		port, _ := reader.ReadString('\n')
-		startClient(port)
+	fmt.Print("Connect to port: ")
+	port, _ := reader.ReadString('\n')
+	port_num, err := strconv.Atoi(port)
+
+	if err == nil {
+		log.Fatal(err)
 	}
+	client.StartClient("localhost", int(port_num))
 
 	board, num_pieces, phase = newBoard()
 	connect_board()
@@ -270,7 +247,7 @@ func main() {
 
 		// fmt.Printf("Chose move %d out of %d moves\n", chosenMove, len(moves))
 
-		add_piece(&board, board[open_space[chosenMove].row][open_space[chosenMove].col], 1)
+		add_piece(&board, board[open_space[chosenMove].Row][open_space[chosenMove].Col], 1)
 		print_board(board)
 		fmt.Printf("\n")
 

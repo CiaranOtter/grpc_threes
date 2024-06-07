@@ -13,20 +13,27 @@ import (
 type GameService struct {
 	gm.UnimplementedGameServiceServer
 	// players
+	player []string
 }
 
 func (s *GameService) MakeMove(ctx context.Context, req *gm.Move) (*gm.Response, error) {
-
-	return &gm.Response{}, nil
+	fmt.Printf("Player with the colour %d made move %d, %d\n", req.Colour, req.Row, req.Col)
+	return &gm.Response{
+		Success: true,
+	}, nil
 }
 
 func (s *GameService) GetCommand(ctx context.Context, req *gm.Empty) (*gm.Command, error) {
-	return &gm.Command{}, nil
+	fmt.Printf("A player has requested a move %d\n")
+	return &gm.Command{
+		Command: "say hi",
+	}, nil
 }
 
 func (s *GameService) RegisterPlayer(ctx context.Context, req *gm.Player) (*gm.Player, error) {
 	fmt.Printf("New player with the name %s has entered the game\n", req.GetName())
-	return &gm.Player{}, nil
+	s.player = append(s.player, req.GetName())
+	return req, nil
 }
 
 func StartService(port int) {
