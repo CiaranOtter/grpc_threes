@@ -14,9 +14,22 @@ import (
 var client_cnn gameservice.GameServiceClient
 
 func MakeMove(move gm.Move) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
 	client_cnn.MakeMove(ctx, &move)
-	defer cancel()
+	// defer cancel()
+}
+
+func GetCommand() gameservice.CMD {
+	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
+	command, err := client_cnn.GetCommand(ctx, &gameservice.Empty{})
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// defer cancel()
+
+	return command.Command
 }
 
 func StartClient(address string, port int) {
@@ -29,12 +42,12 @@ func StartClient(address string, port int) {
 		log.Fatal(err)
 	}
 
-	defer conn.Close()
+	// defer conn.Close()
 
-	client_cnn := gm.NewGameServiceClient(conn)
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	client_cnn = gm.NewGameServiceClient(conn)
+	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
 	client_cnn.RegisterPlayer(ctx, &gm.Player{
 		Name: "Ciaran",
 	})
-	defer cancel()
+	// defer cancel()
 }

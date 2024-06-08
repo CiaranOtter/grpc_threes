@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"time"
 
 	gm "github.com/CiaranOtter/grpc_threes.git/gameservice"
 	"google.golang.org/grpc"
@@ -26,13 +27,22 @@ func (s *GameService) MakeMove(ctx context.Context, req *gm.Move) (*gm.Response,
 func (s *GameService) GetCommand(ctx context.Context, req *gm.Empty) (*gm.Command, error) {
 	fmt.Printf("A player has requested a move %d\n")
 	return &gm.Command{
-		Command: "say hi",
+		Command: gm.CMD_GAME_OVER,
 	}, nil
 }
 
 func (s *GameService) RegisterPlayer(ctx context.Context, req *gm.Player) (*gm.Player, error) {
 	fmt.Printf("New player with the name %s has entered the game\n", req.GetName())
 	s.player = append(s.player, req.GetName())
+
+	for _, player := range s.player {
+		fmt.Printf("player: %s\n", player)
+	}
+
+	for len(s.player) != 2 {
+		fmt.Printf("awaiting another player...")
+		time.Sleep(500 * time.Millisecond)
+	}
 	return req, nil
 }
 

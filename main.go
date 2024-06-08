@@ -9,6 +9,7 @@ import (
 	"strconv"
 
 	"github.com/CiaranOtter/grpc_threes.git/client"
+	"github.com/CiaranOtter/grpc_threes.git/gameservice"
 	gm "github.com/CiaranOtter/grpc_threes.git/gameservice"
 	"github.com/CiaranOtter/grpc_threes.git/util"
 	// "service/gameservice"
@@ -17,6 +18,7 @@ import (
 var board [7][7]*node
 var moves = make([]*node, 0)
 var open_space = make([]gm.Move, 0)
+var move_state = 0
 
 /** reset the game state
  *
@@ -222,6 +224,29 @@ func move_piece(board *[7][7]*node, piece *util.Piece) {
 	}
 }
 
+func place_piece() {
+	find_move()
+	chosen_move := rand.Intn(len(open_space))
+
+	add_piece(&board)
+}
+
+func play_move() {
+	switch move_state {
+	case 0:
+		place_piece()
+		break
+	case 1:
+		move_piece()
+		break
+	case 2:
+		fly_piece()
+		break
+	default:
+		log.Fatal("Unknown game states")
+	}
+}
+
 func main() {
 
 	reader := bufio.NewReader(os.Stdin)
@@ -234,6 +259,25 @@ func main() {
 		log.Fatal(err)
 	}
 	client.StartClient("localhost", int(port_num))
+	fmt.Printf("starting game\n")
+
+	command := client.GetCommand()
+
+	switch command {
+	case gameservice.CMD_MAKE_MOVE:
+		fmt.Printf("make move command\n")
+		break
+	case gameservice.CMD_PLAY_MOVE:
+		fmt.Printf("play move command\n")
+		break
+	case gameservice.CMD_GAME_OVER:
+		fmt.Printf("game over command")
+		play_move()
+		break
+	default:
+		fmt.Printf("unknown command")
+		break
+	}
 
 	board, num_pieces, phase = newBoard()
 	connect_board()
