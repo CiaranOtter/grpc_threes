@@ -16,6 +16,7 @@ var ClientConn three.ThreesClient
 var running bool
 var colour int32
 var open_spaces []*Node
+var num_pieces int
 
 type Node struct {
 	piece int32
@@ -34,7 +35,7 @@ var char_reps = map[int]string{
 
 var board [7][7]*Node
 
-func NewBoard() [7][7]*Node {
+func NewBoard() ([7][7]*Node, int) {
 	return [7][7]*Node{
 		{open_space(0, 0), hor_line(), hor_line(), open_space(0, 3), hor_line(), hor_line(), open_space(0, 6)},
 		{vert_line(), open_space(1, 1), hor_line(), open_space(1, 3), hor_line(), open_space(1, 5), vert_line()},
@@ -43,7 +44,7 @@ func NewBoard() [7][7]*Node {
 		{vert_line(), vert_line(), open_space(4, 2), open_space(4, 3), open_space(4, 4), vert_line(), vert_line()},
 		{vert_line(), open_space(5, 1), hor_line(), open_space(5, 3), hor_line(), open_space(5, 5), vert_line()},
 		{open_space(6, 0), hor_line(), hor_line(), open_space(6, 3), hor_line(), hor_line(), open_space(6, 6)},
-	}
+	}, 8
 }
 
 func vert_line() *Node {
@@ -102,7 +103,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	board = NewBoard()
+	board, num_pieces = NewBoard()
 	printBoard()
 
 	ClientConn = three.NewThreesClient(conn)
@@ -182,6 +183,8 @@ func make_move() {
 	})
 
 	apply_move(int(open_spaces[chosenMove].row), int(open_spaces[chosenMove].col), colour)
+
+	num_pieces--
 
 	printBoard()
 
