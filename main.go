@@ -20,6 +20,8 @@ var moves = make([]*node, 0)
 var open_space = make([]gm.Move, 0)
 var move_state = 0
 var colour = 1
+var player_name string
+var player_index int
 
 /** reset the game state
  *
@@ -196,7 +198,7 @@ func print_connections() {
 	}
 }
 
-func add_piece(board *[7][7]*node, position *node, colour int) {
+func add_piece(board *[7][7]*node, position *node, colour int) gm.Move, gm.Move {
 	num_pieces--
 	fmt.Printf("Setting row %d, ol %d \n", position.position.Row, position.position.Col)
 
@@ -209,6 +211,17 @@ func add_piece(board *[7][7]*node, position *node, colour int) {
 	board[position.position.Row][position.position.Col].piece = &p
 
 	pieces = append(pieces, &p)
+
+	return gm.Move{
+		Row:    position.position.Row,
+		Col:    position.position.Col,
+		Colour: position.position.Colour,
+		Request: &gm.Request{
+			PlayerIndex: int32(player_index),
+		},
+	}, gm.Move{
+		Row: 
+	}
 }
 
 func move_piece(board *[7][7]*node, piece *util.Piece) {
@@ -239,7 +252,8 @@ func play_move() {
 		find_move()
 		chosen_move := rand.Intn(len(open_space))
 
-		add_piece(&board, board[open_space[chosen_move].Row][open_space[chosen_move].Col], colour)
+		move := add_piece(&board, board[open_space[chosen_move].Row][open_space[chosen_move].Col], colour)
+		client.MakeMove(move)
 
 		break
 	case 1:
@@ -282,6 +296,8 @@ func main() {
 	fmt.Print("Connect to port: ")
 	port, _ := reader.ReadString('\n')
 	port_num, err := strconv.Atoi(port)
+	fmt.Printf("Player name: ")
+	player_name, _ := reader.ReadString('\n')
 
 	if err == nil {
 		log.Fatal(err)
@@ -293,31 +309,22 @@ func main() {
 	print_connections()
 	print_board(board)
 
-	client.StartClient("localhost", int(port_num))
+	player_index, colour = client.StartClient("localhost", int(port_num), player_name)
 	fmt.Printf("starting game\n")
 
-	command := client.GetCommand()
-
-	running := false
-
-	if command.Command == gameservice.CMD_GAME_START {
-		fmt.Printf("The game is starting\n")
-		running = true
-	} else {
-		fmt.Printf("The game did not start properly\n")
-		return
-	}
+	running := true
 
 	for running {
 
-		command := client.GetCommand()
+		command := client.GetCommand(player_index)
+		fmt.Printf("Got a new command\n")
 
 		switch command.Command {
-		case gameservice.CMD_MAKE_MOVE:
+		case gameservice.CMD_MAKE_MOVE: // opponent move needs to be applied to the board
 			fmt.Printf("make move command\n")
 			play_opp_move(*board[command.Piece.Row][command.Piece.Col].piece, *board[command.Move.Row][command.Move.Col])
 			break
-		case gameservice.CMD_PLAY_MOVE:
+		case gameservice.CMD_PLAY_MOVE: //generate a board move
 			fmt.Printf("play move command\n")
 			play_move()
 			break

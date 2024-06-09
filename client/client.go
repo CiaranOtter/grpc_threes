@@ -19,9 +19,11 @@ func MakeMove(move gm.Move) {
 	// defer cancel()
 }
 
-func GetCommand() *gameservice.Command {
+func GetCommand(player_index int) *gameservice.Command {
 	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
-	command, err := client_cnn.GetCommand(ctx, &gameservice.Empty{})
+	command, err := client_cnn.GetCommand(ctx, &gameservice.Request{
+		PlayerIndex: int32(player_index),
+	})
 
 	if err != nil {
 		log.Fatal(err)
@@ -32,7 +34,7 @@ func GetCommand() *gameservice.Command {
 	return command
 }
 
-func StartClient(address string, port int) {
+func StartClient(address string, port int, player_name string) (int, int) {
 	var opts []grpc.DialOption
 	opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
 
@@ -46,8 +48,14 @@ func StartClient(address string, port int) {
 
 	client_cnn = gm.NewGameServiceClient(conn)
 	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
-	client_cnn.RegisterPlayer(ctx, &gm.Player{
-		Name: "Ciaran",
+	resp, err := client_cnn.RegisterPlayer(ctx, &gm.Player{
+		Name: player_name,
 	})
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return int(resp.Index), int(resp.Colour)
 	// defer cancel()
 }
