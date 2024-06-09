@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+option go_package = "services/three";
+
+message Request {
+    int32 player_id = 1;
+    Move move = 2;
+}
+
+message Player {
+    int32 colour = 1;
+    string name = 2;
+}
+
+enum Type { 
+    ADD = 0;
+    MOVE = 1;
+    FLY = 2;
+}
+
+enum CMD_Type {
+    MY_MOVE = 0;
+    OPP_MOVE = 1;
+}
+
+message Piece {
+    int32 row =1;
+    int32 col = 2;
+}
+
+message Move {
+    Type type = 1;
+    Piece piece_loc = 2;
+    int32 row = 3;
+    int32 col = 4;
+}
+
+message Response {
+    CMD_Type type = 1;
+    int32 player_colour = 2;
+    Move move = 3;
+}
+
+service Threes {
+    rpc ConnectPlayer(Player) returns(Player);
+    rpc GetCommand(Request) returns(Response);
+    rpc Makemove(Request) returns(Response);
+}
