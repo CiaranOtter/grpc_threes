@@ -13,11 +13,13 @@ enum CMD {
     PLAY_MOVE = 0;
     MAKE_MOVE = 2;
     GAME_OVER = 3;
+    GAME_START = 4;
 }
 
 message Command {
     CMD command = 1;
     Move move = 2;
+    Move Piece = 3;
 }
 
 message Response {

@@ -19,6 +19,7 @@ var board [7][7]*node
 var moves = make([]*node, 0)
 var open_space = make([]gm.Move, 0)
 var move_state = 0
+var colour = 1
 
 /** reset the game state
  *
@@ -224,26 +225,53 @@ func move_piece(board *[7][7]*node, piece *util.Piece) {
 	}
 }
 
-func place_piece() {
-	find_move()
-	chosen_move := rand.Intn(len(open_space))
+func fly_piece(board *[7][7]*node, piece *util.Piece, position *node, colout int) {
+	fmt.Printf("Flying piece (%d, %d)", piece.Position.Row, piece.Position.Col)
 
-	add_piece(&board)
+	board[piece.Position.Row][piece.Position.Col].piece = nil
+	piece.Position = position.position
+	position.piece = piece
+	fmt.Printf(" -> (%d, %d)\n", position.position.Row, position.position.Col)
 }
-
 func play_move() {
 	switch move_state {
 	case 0:
-		place_piece()
+		find_move()
+		chosen_move := rand.Intn(len(open_space))
+
+		add_piece(&board, board[open_space[chosen_move].Row][open_space[chosen_move].Col], colour)
+
 		break
 	case 1:
-		move_piece()
+		chosenPiece := rand.Intn(len(pieces))
+		move_piece(&board, pieces[chosenPiece])
+
 		break
 	case 2:
-		fly_piece()
+		find_move()
+		chosen_move := rand.Intn(len(open_space))
+		chosen_piece := rand.Intn(len(pieces))
+		fly_piece(&board, pieces[chosen_piece], board[open_space[chosen_move].Row][open_space[chosen_move].Col], colour)
 		break
 	default:
 		log.Fatal("Unknown game states")
+		break
+	}
+}
+
+func play_opp_move(piece util.Piece, move node) {
+	switch move_state {
+	case 0:
+		add_piece(&board, &move, (colour+1)%2)
+		break
+	case 1:
+		move_piece(&board, &piece)
+		break
+	case 2:
+		fly_piece(&board, &piece, &move, (colour+1)%2)
+		break
+	default:
+		break
 	}
 }
 
@@ -258,26 +286,6 @@ func main() {
 	if err == nil {
 		log.Fatal(err)
 	}
-	client.StartClient("localhost", int(port_num))
-	fmt.Printf("starting game\n")
-
-	command := client.GetCommand()
-
-	switch command {
-	case gameservice.CMD_MAKE_MOVE:
-		fmt.Printf("make move command\n")
-		break
-	case gameservice.CMD_PLAY_MOVE:
-		fmt.Printf("play move command\n")
-		break
-	case gameservice.CMD_GAME_OVER:
-		fmt.Printf("game over command")
-		play_move()
-		break
-	default:
-		fmt.Printf("unknown command")
-		break
-	}
 
 	board, num_pieces, phase = newBoard()
 	connect_board()
@@ -285,25 +293,64 @@ func main() {
 	print_connections()
 	print_board(board)
 
-	for num_pieces > 0 {
-		find_move()
-		chosenMove := rand.Intn(len(open_space))
+	client.StartClient("localhost", int(port_num))
+	fmt.Printf("starting game\n")
 
-		// fmt.Printf("Chose move %d out of %d moves\n", chosenMove, len(moves))
+	command := client.GetCommand()
 
-		add_piece(&board, board[open_space[chosenMove].Row][open_space[chosenMove].Col], 1)
-		print_board(board)
-		fmt.Printf("\n")
+	running := false
 
+	if command.Command == gameservice.CMD_GAME_START {
+		fmt.Printf("The game is starting\n")
+		running = true
+	} else {
+		fmt.Printf("The game did not start properly\n")
+		return
 	}
 
-	for i := 0; i < 10; i++ {
-		chosenPiece := rand.Intn(8)
+	for running {
 
-		move_piece(&board, pieces[chosenPiece])
-		print_board(board)
-		fmt.Printf("\n")
+		command := client.GetCommand()
+
+		switch command.Command {
+		case gameservice.CMD_MAKE_MOVE:
+			fmt.Printf("make move command\n")
+			play_opp_move(*board[command.Piece.Row][command.Piece.Col].piece, *board[command.Move.Row][command.Move.Col])
+			break
+		case gameservice.CMD_PLAY_MOVE:
+			fmt.Printf("play move command\n")
+			play_move()
+			break
+		case gameservice.CMD_GAME_OVER:
+			fmt.Printf("game over command")
+			return
+			break
+		default:
+			fmt.Printf("unknown command")
+			return
+			break
+		}
 	}
+
+	// for num_pieces > 0 {
+	// 	find_move()
+	// 	chosenMove := rand.Intn(len(open_space))
+
+	// 	// fmt.Printf("Chose move %d out of %d moves\n", chosenMove, len(moves))
+
+	// 	add_piece(&board, board[open_space[chosenMove].Row][open_space[chosenMove].Col], 1)
+	// 	print_board(board)
+	// 	fmt.Printf("\n")
+
+	// }
+
+	// for i := 0; i < 10; i++ {
+	// 	chosenPiece := rand.Intn(8)
+
+	// 	move_piece(&board, pieces[chosenPiece])
+	// 	print_board(board)
+	// 	fmt.Printf("\n")
+	// }
 	// for i := 0; i < 10; i++ {
 	// 	find_move(&board)
 

@@ -19,7 +19,7 @@ func MakeMove(move gm.Move) {
 	// defer cancel()
 }
 
-func GetCommand() gameservice.CMD {
+func GetCommand() *gameservice.Command {
 	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
 	command, err := client_cnn.GetCommand(ctx, &gameservice.Empty{})
 
@@ -29,7 +29,7 @@ func GetCommand() gameservice.CMD {
 
 	// defer cancel()
 
-	return command.Command
+	return command
 }
 
 func StartClient(address string, port int) {
